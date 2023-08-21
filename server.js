@@ -12,6 +12,10 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
+app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
+
 // use this function below or use Expo's Push Notification Tool from: https://expo.dev/notifications
 async function sendPushNotification(expoPushToken) {
   console.log('send push notification in expo');
@@ -52,7 +56,7 @@ app.post('/send-notification', async (req, res) => {
     console.log('calling /send-notification');
 
 
-    let jobStatus = '';
+    let jobStatus = 'Running';
     // define the async function to get azure ml service
     async function asyncFunction() {
       console.log('calling azure ml service');
@@ -102,13 +106,15 @@ app.post('/send-notification', async (req, res) => {
 
     await asyncFunction();
 
-    if (jobStatus != 'Completed') {
-      // get job status every 5 minutes
+    // get job status every 5 minutes if job is running
+    if (jobStatus === 'Running') {
+      console.log('interval start');
       const intervalTime = 300000; // Interval in milliseconds
       const intervalId = setInterval(async () => {
         await asyncFunction();
-        if (jobStatus === 'Completed') {
-          clearInterval(intervalId); // Stop the interval if job completed
+        if (jobStatus != 'Running') {
+          console.log('interval end');
+          clearInterval(intervalId); // Stop the interval if job no longer running
         }
       }, intervalTime);
     }

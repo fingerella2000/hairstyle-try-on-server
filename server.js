@@ -88,6 +88,10 @@ app.post('/send-notification', async (req, res) => {
           const data = response.data;
           jobStatus = data.status;
           console.log('job status: ' + jobStatus);
+          if (jobStatus === 'Completed') {
+            // send push notifiction to client after job finished
+            sendPushNotification(pushToken);
+          }
         }).catch((error) => {
           console.error('error:', error);
         });   
@@ -96,16 +100,18 @@ app.post('/send-notification', async (req, res) => {
       });
     }
 
-    // get job status every 5 minutes
-    const intervalTime = 10000; // Interval in milliseconds (1 minutes)
-    const intervalId = setInterval(async () => {
-      await asyncFunction();
-      if (jobStatus === 'Completed') {
-        clearInterval(intervalId); // Stop the interval if job completed
-        // send push notifiction to client after job finished
-        sendPushNotification(pushToken);
-      }
-    }, intervalTime);    
+    await asyncFunction();
+
+    if (jobStatus != 'Completed') {
+      // get job status every 5 minutes
+      const intervalTime = 300000; // Interval in milliseconds
+      const intervalId = setInterval(async () => {
+        await asyncFunction();
+        if (jobStatus === 'Completed') {
+          clearInterval(intervalId); // Stop the interval if job completed
+        }
+      }, intervalTime);
+    }
 
     res.json({ success: true, message: 'Notifications sent successfully' });
   } catch (error) {

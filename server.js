@@ -48,15 +48,20 @@ async function sendPushNotification(expoPushToken) {
 
 app.post('/send-notification', async (req, res) => {
   try {
-    const { pushToken, jobName } = req.body;
+    let { pushToken, jobName } = req.body;
     console.log(req.body);
+
+    pushToken = pushToken[0].data;
 
     console.log(`pushToken: ${pushToken}`);
     console.log(`jobName: ${jobName}`);
-    console.log('calling /send-notification');
+    console.log('calling node /send-notification');
 
-
+    // define job initial status
     let jobStatus = 'Running';
+    let intervalId;
+    const intervalTime = 300000; // Interval in milliseconds
+
     // define the async function to get azure ml service
     async function asyncFunction() {
       console.log('calling azure ml service');
@@ -93,6 +98,8 @@ app.post('/send-notification', async (req, res) => {
           jobStatus = data.status;
           console.log('job status: ' + jobStatus);
           if (jobStatus === 'Completed') {
+            // stop the interval if job no longer running
+            clearInterval(intervalId);
             // send push notifiction to client after job finished
             sendPushNotification(pushToken);
           }
@@ -104,18 +111,12 @@ app.post('/send-notification', async (req, res) => {
       });
     }
 
-    await asyncFunction();
-
+    // await asyncFunction();
     // get job status every 5 minutes if job is running
-    if (jobStatus === 'Running') {
-      console.log('interval start');
-      const intervalTime = 300000; // Interval in milliseconds
-      const intervalId = setInterval(async () => {
+    if (jobStatus === 'Running') {      
+      intervalId = setInterval(async () => {
+        console.log('interval start');
         await asyncFunction();
-        if (jobStatus != 'Running') {
-          console.log('interval end');
-          clearInterval(intervalId); // Stop the interval if job no longer running
-        }
       }, intervalTime);
     }
 
